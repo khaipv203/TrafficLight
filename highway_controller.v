@@ -49,7 +49,7 @@ always @(sensor, time_out, state) begin
                 nextstate <= s0;
             end
             else begin
-                nextstate <= s2;
+                nextstate <= s3;
             end
             HW_LED <= 3'b001;
             mode_count <= 1'b1;
@@ -72,7 +72,9 @@ end
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) 
     state <= s0;
-    else
+    else begin
     state <= nextstate;
+    CR_Ena = 0;
+    end
 end
 endmodule

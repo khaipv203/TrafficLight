@@ -10,13 +10,13 @@ module CR_Controller(
 always @(CR_Ena, time_out, state) begin
     case (state)
         s0 : begin
-            if(CR_Ena & time_out) begin
+            if(CR_Ena) begin
                 nextstate <= s1;
             end
             else begin
                 nextstate <= s0;
             end
-            CR_LED <= 3'b001;
+            CR_LED = 3'b001;
         end
         s1: begin
             if(time_out) begin
@@ -25,7 +25,7 @@ always @(CR_Ena, time_out, state) begin
             else begin
                 nextstate <= s1;
             end
-            CR_LED <= 3'b100;
+            CR_LED = 3'b100;
         end
         s2: begin
             if(time_out) begin
@@ -34,7 +34,7 @@ always @(CR_Ena, time_out, state) begin
             else begin
                 nextstate <= s2;
             end
-            CR_LED <= 3'b10;
+            CR_LED = 3'b010;
         end
         default: begin
             if(CR_Ena & time_out) begin
@@ -43,7 +43,7 @@ always @(CR_Ena, time_out, state) begin
             else begin
                 nextstate <= s0;
             end
-            CR_LED <= 3'b001;
+            CR_LED = 3'b001;
         end
     endcase
 end
