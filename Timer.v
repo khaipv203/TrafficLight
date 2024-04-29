@@ -1,98 +1,159 @@
-module Timer (
-    input clk, rst_n, mode_count, pulse,
-    output reg time_out,
-    output reg [5:0] time_display
+module HW_Timer (
+    input clk, rst_n, sensor,
+    output reg hw_time_out,
+    output reg [6:0] hw_time
 );
-    localparam mode_1 = 6'b001001;
-    localparam mode_0 = 6'b111011;
+    localparam T = 7'b0111011;
+    localparam t = 7'b0001001;
 
-    reg [5:0] cnt;
-    reg state, nextstate, prev_pulse;
-    // always @(mode_count, state)
-    //     begin
-    //         case (state)
-    //             0: begin
-    //                 if (mode_count == 1'b0) nextstate <= 1'b0;
-    //                 else nextstate <= 1'b1;
-    //             end
-    //             1: begin
-    //                 nextstate <= 1'b0;
-    //             end
-    //             default: begin
-    //                 if (mode_count == 1'b0) nextstate <= 1'b0;
-    //                 else nextstate <= 1'b1;
-    //             end
-    //         endcase
-    //     end
-    // always @(posedge clk or negedge rst_n) begin
-    //     if (!rst_n) state <= 1'b0;
-    //     else state <= nextstate;
-    // end
+    localparam s0 = 2'b00;
+    localparam s1 = 2'b01;
+    localparam s2 = 2'b10;
+
+    reg [31:0] counter;
+    reg [1:0] state, nextstate;
+    reg [6:0] max_time;
+
+
+    always @(state,sensor) begin
+        case (state)
+            s0: begin
+                    if(sensor) begin
+                        nextstate <= s1;
+                        max_time <= t;
+                    end 
+                    else begin
+                        nextstate <= s0;
+                        max_time <= T;
+                    end 
+                end
+                
+            s1: begin
+                nextstate <= s2;
+                max_time <= t+T+1;
+            end
+            s2: begin
+                nextstate <= s0;
+                max_time <= T;
+            end
+            default: begin
+                if(sensor) begin
+                        nextstate <= s1;
+                        max_time <= t;
+                    end 
+                    else begin
+                        nextstate <= s0;
+                        max_time <= T;
+                    end 
+            end
+        endcase
+    end
     always @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
-            cnt <= 0;
-            prev_pulse <= 0;
-            time_out <= 0;
-            time_display <= 6'b111011;
+            counter <= 0;
+            state <= s0;
+            hw_time <= max_time;
+            hw_time_out <= 0;
         end
         else begin
-            time_out <= 0;
-            if(pulse & !prev_pulse) begin
-                if(mode_count) begin
-                    if (cnt > mode_1) begin
-                        cnt <= cnt + 1;
-                        //time_display <= mode_1 - cnt;
-                    end
-                    else begin
-                        cnt <= 0;
-                        time_out <= 1;
-                        //time_display <= mode_1 - cnt;
-                    end
-                    
+            hw_time_out <= 0;
+            if(counter < 10) begin
+                counter <= counter + 1;
+            end
+            else begin
+                counter <= 0;
+                if (hw_time > 0) begin
+                    hw_time <= hw_time - 7'b0000001;
                 end
                 else begin
-                    if (cnt < mode_0) begin
-                        cnt <= cnt + 1;
-                        //time_display <= mode_0 - cnt;
-                    end
-                    else begin
-                        cnt <= 0;
-                        time_out <= 1;
-                        //time_display <= mode_0 - cnt;
-                    end
-                    
-                end
+                    hw_time_out <= 1;
+                    state <= nextstate;
+                    hw_time <= max_time;
                 end
             end
         end
-    always @(cnt) begin
-        if(mode_count) time_display <= mode_1 - cnt;
-        else time_display <= mode_0 - cnt;
     end
 endmodule
-            
-module pulse_1s (
-  input clk,
-  input rst_n,
-  output reg pulse
+        
+
+module CR_Timer(
+    input clk, rst_n, sensor,
+    output reg cr_time_out,
+    output reg [6:0] cr_time
 );
+    localparam T = 7'b0111011;
+    localparam t = 7'b0001001;
 
-  reg [31:0] counter;
+    localparam s0 = 2'b00;
+    localparam s1 = 2'b01;
+    localparam s2 = 2'b10;
+    localparam s3 = 2'b11;
+    reg [31:0] counter;
+    reg [1:0] state, nextstate;
+    reg [6:0] max_time;
 
-  always @(posedge clk or negedge rst_n) begin
-    if(!rst_n) begin
-        counter <= 0;
-        pulse <= 0;
+
+    always @(state, sensor) begin
+        case (state)
+            s0: begin
+                if(sensor) begin
+                    nextstate <= s1;
+                    max_time <= t;
+                end 
+                else begin
+                    nextstate <= s0;
+                    max_time <= T;
+                end 
+            end 
+            s1: begin
+                nextstate <= s2;
+                max_time <= T;
+            end
+            s2: begin
+                nextstate <= s3;
+                max_time <= t;
+            end
+            s3: begin
+                nextstate <= s0;
+                max_time <= T;
+            end
+            default: begin
+                if(sensor) begin
+                    nextstate <= s1;
+                    max_time <= t;
+                end 
+                else begin
+                    nextstate <= s0;
+                    max_time <= T;
+                end 
+            end
+        endcase
     end
-    else begin
-        if(counter < 500) begin
-            counter <= counter + 1;
-            pulse <= 0;
+    always @(posedge clk or negedge rst_n) begin
+        if(!rst_n) begin
+            counter <= 0;
+            state <= s0;
+            cr_time <= max_time;
+            cr_time_out <= 0;
         end
         else begin
-            counter <= 0;
-            pulse <= 1;
+            cr_time_out <= 0;
+            if(counter < 10) begin
+                counter <= counter + 1;
+            end
+            else begin
+                counter <= 0;
+                if (cr_time > 0) begin
+                    cr_time <= cr_time - 7'b0000001;
+                end
+                else begin
+                    cr_time_out <= 1;
+                    state <= nextstate;
+                    cr_time <= max_time;
+                end
+                
+            end
         end
     end
-  end
 endmodule
+        
